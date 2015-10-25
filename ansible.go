@@ -26,7 +26,6 @@ func readdir(dir string, check func(os.FileInfo) bool, suffix string) []string {
 	}
 
 	for _, f := range fi {
-		log.Println("checking", f.Name())
 		if check(f) {
 			if suffix != "" && !strings.HasSuffix(f.Name(), suffix) {
 				continue
@@ -101,7 +100,6 @@ func requestHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveAssets(w http.ResponseWriter, r *http.Request) {
-	log.Println("serving", r.URL.Path[1:])
 	http.ServeFile(w, r, r.URL.Path[1:])
 }
 

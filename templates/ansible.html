@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>Ansible'matic</title>
+
+  <link rel="stylesheet" href="assets/topstyle.css"/>
+  <link rel="stylesheet" href="assets/form.css"/>
+  <script src="assets/jquery-2.1.4.min.js"></script>
+
+</head>
+
+<body>
+
+  <header id="topbar">
+    <h1>Ansible</h1>
+    <div class="clear"></div>
+  </header>
+
+  <form action="/" method="post" class="iso">
+    <div>
+      <label for="machines"></label>
+      <select multiple="multiple" name="machines" class="machines">
+	<option selected>Select Machines</option>
+	{{range .Machines}}<option value="{{.}}">{{.}}</option>
+	{{end}}
+      </select>
+
+      <script>
+	$( ".machines" ).change(function () {
+	  var str = "[all]\n"
+	  $( ".machines option:selected" ).each(function () {
+	    str = str + $( this ).text() + "\n"
+	  })
+	  $( "textarea#inventory" ).val(str)
+	})
+      </script>
+    </div>
+
+    <div>
+      <label for="inventory">Inventory</label>
+      <textarea id="inventory" name="inventory" style="height: 8em"></textarea>
+    </div>
+
+    <div>
+      <label for="playbooks"></label>
+      <select name="playbooks" class="playbooks">
+	<option selected>Select Playbook</option>
+	{{range .Playbooks}}<option value="{{.}}.yml">{{.}}</option>
+	{{end}}
+      </select>
+
+      <script>
+	$( ".playbooks" ).change( function() {
+	  var str = ""
+	  $( ".playbooks option:selected" ).each(function() {
+	    str += $( this ).text()
+	  })
+	  $.get( "playbooks/" + str + ".yml", function( data ) {
+	    $( "textarea#playbook" ).val( data )
+	  })
+	})
+      </script>
+    </div>
+
+    <div>
+      <label for="roles"></label>
+      <select name="roles" class="roles">
+	<option selected>Select Roles</option>
+	{{range .Roles}}<option value="{{.}}">{{.}}</option>
+	{{end}}
+      </select>
+
+<!-- add these to the roles section in the Playbook textarea
+      <script>
+      </script>
+-->
+    </div>
+
+    <div>
+      <label for="environment">Settings</label>
+      <select name="environment" class="environment">
+	<option selected></option>
+	<option value="set_some_tunable">set_some_tunable</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="playbook">Playbook</label>
+      <textarea id="playbook" name="playbook" style="height: 20em"></textarea>
+    </div>
+  </form>
+
+</body>
+</html>

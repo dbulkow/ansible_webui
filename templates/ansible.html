@@ -51,9 +51,9 @@
       </select>
 
       <script>
-	$( ".playbooks" ).change( function() {
+	$( ".playbook_selection" ).change( function() {
 	  var str = ""
-	  $( ".playbooks option:selected" ).each(function() {
+	  $( ".playbook_selection option:selected" ).each(function() {
 	    str += $( this ).text()
 	  })
 	  $.get( "playbooks/" + str + ".yml", function( data ) {

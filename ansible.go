@@ -3,9 +3,11 @@ package main
 import (
 	"bufio"
 	"flag"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"sort"
 	"strings"
 	"text/template"
@@ -76,26 +78,112 @@ func readFile(file string) []string {
 }
 
 func requestHandler(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("templates/ansible.html")
-	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		log.Println(err)
-	}
+	switch r.Method {
+	case "POST":
+		r.ParseForm()
 
-	ansible_details := &struct {
-		Machines  []string
-		Playbooks []string
-		Roles     []string
-	}{
-		Machines:  readFile("machines"),
-		Playbooks: readdir("playbooks", checkFile, ".yml"),
-		Roles:     readdir("roles", checkDir, ""),
-	}
+		dir, err := ioutil.TempDir("jobs", "")
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			log.Println(err)
+			return
+		}
 
-	err = t.Execute(w, ansible_details)
-	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		log.Println(err)
+		err = ioutil.WriteFile(dir+"/inventory", []byte(r.PostFormValue("inventory")), 0444)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			log.Println(err)
+			return
+		}
+
+		err = ioutil.WriteFile(dir+"/playbook.yml", []byte(r.PostFormValue("playbook")), 0444)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			log.Println(err)
+			return
+		}
+
+		ioutil.WriteFile(dir+"/remote", []byte("job started by "+r.RemoteAddr), 0444)
+
+		logfname := dir + "/log"
+
+		f, err := os.OpenFile(logfname, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0444)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			log.Println(err)
+			return
+		}
+		defer f.Close()
+
+		curdir, err := os.Getwd()
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			log.Println(err)
+			return
+		}
+
+		os.Symlink(curdir+"/roles", dir+"/roles")
+
+		cmd := exec.Command("ansible-playbook", "-i", dir+"/inventory", dir+"/playbook.yml")
+		cmd.Stdout = f
+		cmd.Stderr = f
+		cmd.Dir = curdir
+
+		err = cmd.Start()
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			log.Println("command", err)
+			return
+		}
+
+		go func() {
+			cmd.Wait()
+		}()
+
+		logfile_details := &struct {
+			Playbook string
+			Logfile  string
+		}{
+			Playbook: r.PostFormValue("playbook_selection"),
+			Logfile:  logfname,
+		}
+
+		t, err := template.ParseFiles("templates/logfile.html")
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			log.Println(err)
+			return
+		}
+
+		err = t.Execute(w, logfile_details)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			log.Println(err)
+			return
+		}
+
+	case "GET":
+		t, err := template.ParseFiles("templates/ansible.html")
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			log.Println(err)
+		}
+
+		ansible_details := &struct {
+			Machines  []string
+			Playbooks []string
+			Roles     []string
+		}{
+			Machines:  readFile("machines"),
+			Playbooks: readdir("playbooks", checkFile, ".yml"),
+			Roles:     readdir("roles", checkDir, ""),
+		}
+
+		err = t.Execute(w, ansible_details)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			log.Println(err)
+		}
 	}
 }
 
@@ -114,7 +202,8 @@ func main() {
 	}
 
 	http.HandleFunc("/", requestHandler)
-	http.HandleFunc("/playbooks/", serveAssets)
 	http.HandleFunc("/assets/", serveAssets)
+	http.HandleFunc("/jobs/", serveAssets)
+	http.HandleFunc("/playbooks/", serveAssets)
 	log.Fatal(http.ListenAndServe(":"+*port, nil))
 }

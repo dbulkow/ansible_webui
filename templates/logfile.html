@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>{{.Playbook}}</title>
+
+    <link rel="stylesheet" href="/assets/topstyle.css"/>
+    <link rel="stylesheet" href="/assets/form.css"/>
+    <script src="/assets/jquery-2.1.4.min.js"></script>
+
+    <script type="text/javascript" language="javascript">
+      $.ajaxSetup({ cache: false });
+
+      function fetchlog() {
+        $.get("{{.Logfile}}", function( data ) {
+          $( "#logoutput" ).html( data );
+          <!-- stop refreshing when the status line arrives -->
+          if (data.search("unreachable") == -1) {
+            setTimeout(fetchlog, 5000);
+          }
+        });
+      }
+
+      $(document).ready(function() {
+        fetchlog();
+      });
+    </script>
+  </head>
+  <body>
+
+    <header id="topbar">
+      <h1>Running {{.Playbook}}</h1>
+      <nav>
+	<a href="/">New Job</a>
+	<a href="/status">Status</a>
+      </nav>
+      <div class="clear"></div>
+    </header>
+
+    <pre id="logoutput">
+      LOG GOES HERE
+    </pre>
+
+  </body>
+</html>

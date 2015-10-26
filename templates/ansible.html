@@ -20,9 +20,8 @@
 
   <form action="/" method="post" class="ansible">
     <div>
-      <label for="machines"></label>
-      <select multiple="multiple" name="machines" class="machines">
-	<option selected>Select Machines</option>
+      <label for="machines">Machines</label>
+      <select multiple="multiple" name="machines" class="machines" style="width: 500px">
 	{{range .Machines}}<option value="{{.}}">{{.}}</option>
 	{{end}}
       </select>
@@ -40,12 +39,12 @@
 
     <div>
       <label for="inventory">Inventory</label>
-      <textarea id="inventory" name="inventory" style="height: 8em"></textarea>
+      <textarea id="inventory" name="inventory" style="height: 8em" wrap="off"></textarea>
     </div>
 
     <div>
-      <label for="playbooks"></label>
-      <select name="playbooks" class="playbooks">
+      <label for="playbook_selection">Playbooks</label>
+      <select name="playbook_selection" class="playbook_selection">
 	<option selected>Select Playbook</option>
 	{{range .Playbooks}}<option value="{{.}}.yml">{{.}}</option>
 	{{end}}
@@ -63,32 +62,35 @@
 	})
       </script>
     </div>
-
+<!-- if we want to add roles from those available
     <div>
-      <label for="roles"></label>
+      <label for="roles">Roles</label>
       <select name="roles" class="roles">
-	<option selected>Select Roles</option>
+	<option selected></option>
 	{{range .Roles}}<option value="{{.}}">{{.}}</option>
 	{{end}}
       </select>
 
-<!-- add these to the roles section in the Playbook textarea
       <script>
       </script>
--->
     </div>
-
+-->
+<!-- if we come up with some environment that is pre-arranged in a role
     <div>
-      <label for="environment">Settings</label>
+      <label for="environment">Env</label>
       <select name="environment" class="environment">
 	<option selected></option>
 	<option value="set_some_tunable">set_some_tunable</option>
       </select>
     </div>
-
+-->
     <div>
       <label for="playbook">Playbook</label>
-      <textarea id="playbook" name="playbook" style="height: 20em"></textarea>
+      <textarea id="playbook" name="playbook" style="height: 20em" wrap="off"></textarea>
+    </div>
+
+    <div class="button" align="right">
+      <button type="submit" name="ansible" value="ansible_submit">Submit</button>
     </div>
   </form>
 

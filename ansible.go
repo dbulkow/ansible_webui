@@ -191,6 +191,10 @@ func serveAssets(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, r.URL.Path[1:])
 }
 
+func serveStatus(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "templates/status.html")
+}
+
 func main() {
 	var port = flag.String("port", "", "HTTP service address (.e.g. 8080)")
 
@@ -205,5 +209,6 @@ func main() {
 	http.HandleFunc("/assets/", serveAssets)
 	http.HandleFunc("/jobs/", serveAssets)
 	http.HandleFunc("/playbooks/", serveAssets)
+	http.HandleFunc("/status", serveStatus)
 	log.Fatal(http.ListenAndServe(":"+*port, nil))
 }

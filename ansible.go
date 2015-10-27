@@ -136,9 +136,7 @@ func requestHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		go func() {
-			cmd.Wait()
-		}()
+		go cmd.Wait()
 
 		logfile_details := &struct {
 			Playbook string

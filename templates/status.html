@@ -19,7 +19,23 @@
       <div class="clear"></div>
     </header>
 
-    <p>Nuthin to see here... yet!</p>
+    <script>
+      $(document).ready(function() {
+	  var loc = $(location).attr('protocol') + "//" + $(location).attr('host')
+              $.getJSON(loc + "/api/v1/jobs", function( data ) {
+		  var items = []
+		  $.each( data, function( index, value ) {
+		      console.log(index, value)
+		      items.push( "<li id='" + value.job + "'><a href=\"" + value.link + "\">" + value.job + "</a></li>" );
+		  });
+
+		  $( "<ul/>", {
+		      "class": "my-new-list",
+		      html: items.join( "" )
+		  }).appendTo( "body" );
+          });
+      });
+    </script>
 
   </body>
 </html>

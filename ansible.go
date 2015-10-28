@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -216,6 +217,64 @@ func serveStatus(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "templates/status.html")
 }
 
+type httperror struct {
+	Code    int    `json:"code"`
+	Id      string `json:"id"`
+	Message string `json:"message"`
+	Detail  string `json:"detail"`
+}
+
+type job struct {
+	Job  string `json:"job"`
+	Link string `json:"link"`
+}
+
+func serveAPI(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != "GET" {
+		w.Header().Set("Allow", "GET")
+		h := &httperror{
+			Code:    http.StatusMethodNotAllowed,
+			Id:      "notallowed",
+			Message: "method not allowed",
+			Detail:  "Only GET supported on this service",
+		}
+		b, _ := json.MarshalIndent(h, "", "\t")
+		http.Error(w, string(b), http.StatusMethodNotAllowed)
+		return
+	}
+
+	switch r.URL.Path {
+	case "/api/v1/jobs":
+		jobsdirs := readdir("jobs", checkDir, "")
+		jobslist := make([]job, 0)
+		for _, j := range jobsdirs {
+			entry := job{
+				Job:  j,
+				Link: "http://" + r.Host + "/jobs/" + j + "/",
+			}
+			jobslist = append(jobslist, entry)
+		}
+		b, err := json.MarshalIndent(jobslist, "", "\t")
+		if err != nil {
+			h := &httperror{
+				Code:    http.StatusInternalServerError,
+				Id:      "internalerror",
+				Message: "internal error",
+				Detail:  "Unable to Marshal jobs list",
+			}
+			b, _ := json.MarshalIndent(h, "", "\t")
+			http.Error(w, string(b), http.StatusInternalServerError)
+			return
+		}
+		fmt.Fprintf(w, string(b))
+		return
+	}
+
+	http.NotFound(w, r)
+}
+
 func main() {
 	var port = flag.String("port", "", "HTTP service address (.e.g. 8080)")
 
@@ -227,6 +286,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", requestHandler)
+	http.HandleFunc("/api/", serveAPI)
 	http.HandleFunc("/assets/", serveAssets)
 	http.HandleFunc("/jobs/", serveAssets)
 	http.HandleFunc("/playbooks/", serveAssets)

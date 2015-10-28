@@ -129,6 +129,10 @@ func requestHandler(w http.ResponseWriter, r *http.Request) {
 		cmd.Stderr = f
 		cmd.Dir = curdir
 
+		env := os.Environ()
+		env = append(env, "PYTHONUNBUFFERED=1")
+		cmd.Env = env
+
 		err = cmd.Start()
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)

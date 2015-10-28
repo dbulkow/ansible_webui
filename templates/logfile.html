@@ -16,7 +16,7 @@
           $( "#logoutput" ).html( data );
           <!-- stop refreshing when the status line arrives -->
           if (data.search("unreachable") == -1) {
-            setTimeout(fetchlog, 5000);
+            setTimeout(fetchlog, 1000);
           }
         });
       }

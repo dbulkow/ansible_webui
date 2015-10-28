@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -77,70 +78,84 @@ func readFile(file string) []string {
 	return lines
 }
 
+func runAnsible(inventory, playbook, remote string) (string, error) {
+	os.Mkdir("jobs", 0700)
+
+	jobdir, err := ioutil.TempDir("jobs", "")
+	if err != nil {
+		return "", err
+	}
+
+	err = ioutil.WriteFile(jobdir+"/inventory", []byte(inventory), 0444)
+	if err != nil {
+		return "", err
+	}
+
+	err = ioutil.WriteFile(jobdir+"/playbook.yml", []byte(playbook), 0444)
+	if err != nil {
+		return "", err
+	}
+
+	ioutil.WriteFile(jobdir+"/remote", []byte("job started by "+remote), 0444)
+
+	logfname := jobdir + "/log"
+
+	f, err := os.OpenFile(logfname, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0444)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	curdir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	os.Symlink(curdir+"/roles", jobdir+"/roles")
+
+	cmd := exec.Command("ansible-playbook", "-i", jobdir+"/inventory", jobdir+"/playbook.yml")
+	cmd.Stdout = f
+	cmd.Stderr = f
+	cmd.Dir = curdir
+
+	/*
+	 * ansible is made from python, which wants to buffer output.
+	 * disable that here by setting the environment variable.
+	 */
+	env := os.Environ()
+	env = append(env, "PYTHONUNBUFFERED=1")
+	cmd.Env = env
+
+	err = cmd.Start()
+	if err != nil {
+		return "", fmt.Errorf("command Start: %v", err)
+	}
+
+	go func() {
+		err := cmd.Wait()
+		if err != nil {
+			log.Printf("command finished with error: %v", err)
+		}
+	}()
+
+	return logfname, nil
+}
+
 func requestHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
 		r.ParseForm()
 
-		dir, err := ioutil.TempDir("jobs", "")
+		inventory := r.PostFormValue("inventory")
+		playbook := r.PostFormValue("playbook")
+		remote := r.RemoteAddr
+
+		logfname, err := runAnsible(inventory, playbook, remote)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			log.Println(err)
 			return
 		}
-
-		err = ioutil.WriteFile(dir+"/inventory", []byte(r.PostFormValue("inventory")), 0444)
-		if err != nil {
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			log.Println(err)
-			return
-		}
-
-		err = ioutil.WriteFile(dir+"/playbook.yml", []byte(r.PostFormValue("playbook")), 0444)
-		if err != nil {
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			log.Println(err)
-			return
-		}
-
-		ioutil.WriteFile(dir+"/remote", []byte("job started by "+r.RemoteAddr), 0444)
-
-		logfname := dir + "/log"
-
-		f, err := os.OpenFile(logfname, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0444)
-		if err != nil {
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			log.Println(err)
-			return
-		}
-		defer f.Close()
-
-		curdir, err := os.Getwd()
-		if err != nil {
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			log.Println(err)
-			return
-		}
-
-		os.Symlink(curdir+"/roles", dir+"/roles")
-
-		cmd := exec.Command("ansible-playbook", "-i", dir+"/inventory", dir+"/playbook.yml")
-		cmd.Stdout = f
-		cmd.Stderr = f
-		cmd.Dir = curdir
-
-		env := os.Environ()
-		env = append(env, "PYTHONUNBUFFERED=1")
-		cmd.Env = env
-
-		err = cmd.Start()
-		if err != nil {
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			log.Println("command", err)
-			return
-		}
-
-		go cmd.Wait()
 
 		logfile_details := &struct {
 			Playbook string

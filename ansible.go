@@ -132,10 +132,14 @@ func runAnsible(inventory, playbook, remote string) (string, error) {
 	}
 
 	go func() {
+		var output string
 		err := cmd.Wait()
 		if err != nil {
-			log.Printf("command finished with error: %v", err)
+			output = fmt.Sprintf("%s finished with error status: %v\n", jobdir, err)
+		} else {
+			output = fmt.Sprintf("%s finished with no errors\n", jobdir)
 		}
+		ioutil.WriteFile(jobdir+"/exitstatus", []byte(output), 0400)
 	}()
 
 	return logfname, nil

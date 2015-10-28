@@ -24,7 +24,7 @@
   <form action="/" method="post" class="ansible">
     <div>
       <label for="machines">Machines</label>
-      <select multiple="multiple" name="machines" class="machines" style="width: 500px">
+      <select multiple="multiple" name="machines" class="machines">
 	{{range .Machines}}<option value="{{.}}">{{.}}</option>
 	{{end}}
       </select>

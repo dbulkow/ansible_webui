@@ -32,8 +32,9 @@
       <script>
 	$( ".machines" ).change(function () {
 	  var str = "[all]\n"
+	  var ansible_text = " ansible_ssh_host=192.168.0.XX ansible_ssh_user=root ansible_ssh_pass=ftServer\n"
 	  $( ".machines option:selected" ).each(function () {
-	    str = str + $( this ).text() + "\n"
+	    str = str + $( this ).text() + ansible_text
 	  })
 	  $( "textarea#inventory" ).val(str)
 	})

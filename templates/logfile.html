@@ -9,8 +9,6 @@
     <script src="/assets/jquery-2.1.4.min.js"></script>
 
     <script type="text/javascript" language="javascript">
-      $.ajaxSetup({ cache: false });
-
       function fetchlog() {
         $.get("{{.Logfile}}", function( data ) {
           $( "#logoutput" ).html( data );
